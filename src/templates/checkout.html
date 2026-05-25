@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finalizar Pedido - Express Kitchen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans antialiased">
+
+    <header class="bg-red-600 text-white p-4 shadow-md sticky top-0 z-50">
+        <div class="container mx-auto flex items-center gap-4">
+            <a href="/" class="text-xl font-bold hover:text-gray-200">← Volver</a>
+            <h1 class="text-lg font-black uppercase tracking-wider">Datos de Entrega</h1>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-6 max-w-xl">
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 mb-6">
+            <h2 class="font-black text-gray-800 uppercase text-sm tracking-wider mb-3">Resumen de tu cuenta</h2>
+            <div id="checkout-summary" class="space-y-2 border-b pb-3 text-sm text-gray-600">
+                </div>
+            <div class="flex justify-between items-center pt-3">
+                <span class="font-bold text-gray-700">Total a pagar (Contra entrega):</span>
+                <span id="checkout-total" class="text-xl font-black text-green-600">$0</span>
+            </div>
+        </div>
+
+        <form id="order-form" onsubmit="enviarPedido(event)" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 space-y-4">
+            <h2 class="font-black text-gray-800 uppercase text-sm tracking-wider mb-2">¿A dónde enviamos el pedido?</h2>
+            
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Nombre Completo</label>
+                <input type="text" id="nombre" required class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Teléfono / WhatsApp</label>
+                <input type="tel" id="telefono" required placeholder="Ej: 3123456789" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Dirección de Domicilio</label>
+                <input type="text" id="direccion" required placeholder="Barrio, Calle, Número de casa o apartamento" class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition">
+                
+                <button type="button" onclick="obtenerUbicacion()" id="btn-gps" class="mt-2 text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1 transition bg-red-50 hover:bg-red-100 px-3 py-2 rounded-lg border border-red-200">
+                    📍 Compartir mi ubicación GPS actual
+                </button>
+                
+                <input type="hidden" id="coordenadas" name="coordenadas">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase text-gray-500 mb-1">Notas adicionales (Opcional)</label>
+                <textarea id="notas" rows="2" placeholder="Ej: Cambiar por billete de 50, sin cebolla, golpear fuerte..." class="w-full bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition"></textarea>
+            </div>
+
+            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl transition shadow uppercase tracking-wider text-xs pt-4 mt-2">
+                🚀 Enviar Pedido a la Cocina
+            </button>
+        </form>
+        <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl space-y-4">
+            <div class="text-4xl">🔥</div>
+            <h3 class="text-xl font-black text-gray-900 uppercase">¡Pedido en la Cocina!</h3>
+            <p class="text-sm text-gray-600">Tu orden ha sido enviada con éxito. Ya la estamos preparando.</p>
+            
+            <div class="bg-yellow-50 p-3 rounded-xl border border-yellow-200 text-xs text-yellow-800 text-left">
+                <b>¿Quieres cancelar o modificar algo?</b> Escríbenos de inmediato por WhatsApp antes de que salga el domiciliario.
+            </div>
+
+            <a id="whatsapp-btn" href="#" target="_blank" class="block w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl transition shadow text-sm uppercase tracking-wider">
+                💬 Escribir a Soporte
+            </a >
+
+            <button onclick="volverAlMenu()" class="w-full text-xs font-bold text-gray-400 hover:text-gray-600 uppercase tracking-wide pt-2">
+                Volver al Menú Principal
+            </button>
+        </div>
+    </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/cart.js') }}"></script>
+    <script>
+        // Al cargar la vista de checkout, leemos el LocalStorage para pintar el resumen de lo que va a comprar
+        document.addEventListener('DOMContentLoaded', () => {
+            const summaryContainer = document.getElementById('checkout-summary');
+            const totalLabel = document.getElementById('checkout-total');
+            
+            if (carrito.length === 0) {
+                window.location.href = '/'; // Si entra aquí sin productos, lo devuelve al menú
+                return;
+            }
+
+            summaryContainer.innerHTML = '';
+            let total = 0;
+            
+            carrito.forEach(item => {
+                const subtotal = item.precio * item.cantidad;
+                total += subtotal;
+                summaryContainer.innerHTML += `
+                    <div class="flex justify-between">
+                        <span>${item.nombre} <b class="text-red-600">x${item.cantidad}</b></span>
+                        <span class="font-semibold text-gray-800">$${subtotal.toLocaleString()}</span>
+                    </div>
+                `;
+            });
+            totalLabel.innerText = `$${total.toLocaleString()}`;
+        });
+
+        // Función temporal para cuando hunda "Enviar Pedido"
+        function enviarPedido(event) {
+            event.preventDefault();
+            const datos = {
+                nombre: document.getElementById('nombre').value,
+                telefono: document.getElementById('telefono').value,
+                direccion: document.getElementById('direccion').value,
+                notas: document.getElementById('notas').value,
+                productos: carrito
+            };
+            
+            console.log("Datos del pedido listos para la BD:", datos);
+            alert(`¡Gracias ${datos.nombre}! Tu pedido está listo para ser procesado.`);
+        }
+        // Función para obtener las coordenadas GPS del navegador
+        function obtenerUbicacion() {
+            const btnGps = document.getElementById('btn-gps');
+
+            if (!navigator.geolocation) {
+                alert("Lo siento, tu navegador no soporta geolocalización.");
+                return;
+            }
+
+            btnGps.innerText = "⏳ Obteniendo ubicación...";
+            btnGps.disabled = true;
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    
+                    // Guardamos el enlace directo a Google Maps en el input oculto
+                    document.getElementById('coordenadas').value = `https://www.google.com/maps?q=${lat},${lon}`;
+                    
+                    // Cambiamos el diseño del botón para confirmar el éxito
+                    btnGps.innerText = "✅ Ubicación vinculada con éxito";
+                    btnGps.className = "mt-2 text-xs font-bold text-green-600 flex items-center gap-1 bg-green-50 px-3 py-2 rounded-lg border border-green-200";
+                },
+                (error) => {
+                    console.error(error);
+                    btnGps.innerText = "❌ Error al obtener ubicación";
+                    btnGps.disabled = false;
+                    
+                    if (error.code === error.PERMISSION_DENIED) {
+                        alert("Por favor, permite el acceso al GPS en tu navegador para compartir la ubicación.");
+                    } else {
+                        alert("No se pudo obtener la ubicación actual.");
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 10000 } // Alta precisión para celulares
+            );
+        }
+
+        // Modificamos la función de enviar para que capture las coordenadas
+        function enviarPedido(event) {
+            event.preventDefault();
+            
+            // Creamos el objeto con la información real
+            const datos = {
+                nombre: document.getElementById('nombre').value,
+                telefono: document.getElementById('telefono').value,
+                direccion: document.getElementById('direccion').value,
+                ubicacion_gps: document.getElementById('coordenadas').value || "No compartida",
+                notas: document.getElementById('notas').value,
+                productos: carrito
+            };
+            
+            // Cambiamos el estado del botón principal
+            const btnEnviar = event.target.querySelector('button[type="submit"]');
+            btnEnviar.innerText = "⏳ Enviando pedido a la cocina...";
+            btnEnviar.disabled = true;
+
+           
+            
+            // Enviamos los datos al backend usando Fetch API
+            fetch('/api/enviar-pedido', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(datos)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // 1. Limpiamos el carrito local
+                    localStorage.removeItem('carrito');
+                    
+                    // 2. Preparamos el enlace de WhatsApp con el mensaje automático
+                    // Reemplaza el 573000000000 por tu número de WhatsApp real de la cocina
+                    const numeroCocina = "573202635362"; 
+                    const mensajeWa = encodeURIComponent(`Hola Express Kitchen, acabo de hacer un pedido a nombre de ${datos.nombre} y necesito gestionar una modificación o cancelación.`);
+                    document.getElementById('whatsapp-btn').href = `https://wa.me/${numeroCocina}?text=${mensajeWa}`;
+                    
+                    // 3. Mostramos la ventana flotante de éxito
+                    document.getElementById('success-modal').classList.remove('hidden');
+                } else {
+                    alert("Hubo un problema al procesar el pedido: " + data.message);
+                    btnEnviar.innerText = "🚀 Enviar Pedido a la Cocina";
+                    btnEnviar.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("Error de conexión con el servidor.");
+                btnEnviar.innerText = "🚀 Enviar Pedido a la Cocina";
+                btnEnviar.disabled = false;
+                
+                
+            });
+            
+        }
+        function volverAlMenu() {
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
