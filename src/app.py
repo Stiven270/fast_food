@@ -49,7 +49,7 @@ def enviar_pedido_api():
 
         # LÓGICA DEL DOMICILIO: Evaluamos el método de entrega enviado por JS
         if metodo_entrega == 'domicilio':
-            costo_envio = int(os.getenv("COSTO_DOMICILIO", 3000)) # Lee los 3000 del .env o por defecto
+            costo_envio = int(os.getenv("COSTO_DOMICILIO", 5000)) # Lee los 5000 del .env o por defecto
             entrega_texto = f"🏍️ **Entrega:** Domicilio\n📍 **Dirección:** {direccion}\n🗺️ **GPS:** {ubicacion_gps}"
         else:
             costo_envio = 0
