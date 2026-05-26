@@ -241,8 +241,7 @@ const datos = {
     direccion: metodoEntrega === 'domicilio' ? document.getElementById('direccion').value : "Retiro en local",
     ubicacion_gps: metodoEntrega === 'domicilio' ? (document.getElementById('coordenadas').value || "No compartida") : "N/A",
     notas: document.getElementById('notas').value,
-    
-    total: totalNetoDefinitivo, 
+    total: totalNetoDefinitivo, // 👈 Cambiado para que mande el valor con domicilio
     carrito: carrito 
 };
     
