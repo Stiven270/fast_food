@@ -172,14 +172,25 @@
         }
 
         function calcularTotalesFinales() {
-            let costoEnvio = (metodoEntrega === 'domicilio') ? TARIFA_DOMICILIO : 0;
-            let totalNeto = subtotalProductos + costoEnvio;
-
-            document.getElementById('checkout-subtotal').innerText = `$${subtotalProductos.toLocaleString('es-CO')}`;
+    let costoEnvio = 0;
+    
+    if (metodoEntrega === 'domicilio') {
+        const horaActual = new Date().getHours(); // Captura la hora local del celular/PC del cliente
+        // Si la hora del dispositivo está entre las 8 PM (20) y las 10 PM (23)
+        if (horaActual >= 20 && horaActual < 23) {
+            costoEnvio = 6000;
+            document.getElementById('checkout-envio').innerText = `+$${costoEnvio.toLocaleString('es-CO')} (Nocturno)`;
+        } else {
+            costoEnvio = TARIFA_DOMICILIO; // Los $5000 normales
             document.getElementById('checkout-envio').innerText = `+$${costoEnvio.toLocaleString('es-CO')}`;
-            document.getElementById('checkout-total').innerText = `$${totalNeto.toLocaleString('es-CO')}`;
         }
+    }
 
+    let totalNeto = subtotalProductos + costoEnvio;
+
+    document.getElementById('checkout-subtotal').innerText = `$${subtotalProductos.toLocaleString('es-CO')}`;
+    document.getElementById('checkout-total').innerText = `$${totalNeto.toLocaleString('es-CO')}`;
+}
         // Función para capturar coordenadas GPS
         function obtenerUbicacion() {
             const btnGps = document.getElementById('btn-gps');
@@ -222,6 +233,7 @@
     let totalNetoDefinitivo = subtotalProductos + costoEnvio;
     
     // 2. Creamos el objeto con las llaves exactas que espera tu archivo app.py
+// ... dentro de function enviarPedido(event)
 const datos = {
     nombre: document.getElementById('nombre').value,
     telefono: document.getElementById('telefono').value,
@@ -229,8 +241,9 @@ const datos = {
     direccion: metodoEntrega === 'domicilio' ? document.getElementById('direccion').value : "Retiro en local",
     ubicacion_gps: metodoEntrega === 'domicilio' ? (document.getElementById('coordenadas').value || "No compartida") : "N/A",
     notas: document.getElementById('notas').value,
-    total: subtotalProductos, 
-    carrito: carrito // 👈 ¡ASEGÚRATE DE QUE DIGA 'carrito: carrito' Y NO 'productos: carrito'!
+    
+    total: totalNetoDefinitivo, 
+    carrito: carrito 
 };
     
     // Deshabilitar botón para evitar múltiples clics

@@ -42,20 +42,33 @@ def enviar_pedido_api():
         notas = datos.get('notas', 'Ninguna')
         productos = datos.get('carrito', [])
         
-        # Calcular el subtotal de los productos
+# Calcular el subtotal de los productos
         subtotal_productos = 0
         for p in productos:
             subtotal_productos += p['precio'] * p['cantidad']
 
-        # LÓGICA DEL DOMICILIO: Evaluamos el método de entrega enviado por JS
+        # LÓGICA DEL DOMICILIO CON TARIFA DINÁMICA NOCTURNA
         if metodo_entrega == 'domicilio':
-            costo_envio = int(os.getenv("COSTO_DOMICILIO", 5000)) # Lee los 5000 del .env o por defecto
-            entrega_texto = f"🏍️ **Entrega:** Domicilio\n📍 **Dirección:** {direccion}\n🗺️ **GPS:** {ubicacion_gps}"
+            from datetime import datetime
+            import pytz # Librería opcional pero recomendada para asegurar la hora de Colombia
+            
+            # Definimos la zona horaria de Colombia para que no use la hora UTC de los servidores de Render
+            zona_co = pytz.timezone('America/Bogota')
+            hora_actual = datetime.now(zona_co).hour  # Captura solo la hora militar (0 a 23)
+            
+            # Evaluamos si la hora está entre las 20:00 (8 PM) y las 21:59 (antes de las 10 PM)
+            # Si quieres incluir las 10:00 PM en punto exacto, puedes dejarlo como: 20 <= hora_actual <= 22
+            if 20 <= hora_actual < 23:
+                costo_envio = 6000
+                entrega_texto = f"🌙 *Entrega:* Domicilio (Tarifa Nocturna 8pm-11pm)\n📍 *Dirección:* {direccion}\n🗺️ *GPS:* {ubicacion_gps}"
+            else:
+                costo_envio = int(os.getenv("COSTO_DOMICILIO", 5000)) # Tarifa normal de $5.000
+                entrega_texto = f"🏍️ *Entrega:* Domicilio\n📍 *Dirección:* {direccion}\n🗺️ *GPS:* {ubicacion_gps}"
         else:
             costo_envio = 0
-            entrega_texto = "🏃‍♂️ **Entrega:** Retiro en Local (Cliente recoge)"
+            entrega_texto = "🏃‍♂️ *Entrega:* Retiro en Local (Cliente recoge)"
 
-        # El total real es el subtotal de comida más el recargo de envío
+        # El total real se calcula de forma transparente con la variable asignada arriba
         total_general = subtotal_productos + costo_envio
 
         # Guardar en la tabla 'pedidos' de Supabase
