@@ -80,7 +80,8 @@ def enviar_pedido_api():
                 "ubicacion_gps": ubicacion_gps if metodo_entrega == 'domicilio' else "N/A",
                 "notas": notas,
                 "productos_detalle": productos,
-                "total": total_general # Ahora sí guarda el total con el envío incluido
+                "total": total_general,
+                "estado": "Pendiente"  # <-- AGREGA ESTA LÍNEA AQUÍ
             }
             supabase.table("pedidos").insert(pedido_db).execute()
             print("📝 Pedido respaldado con éxito en Supabase")
@@ -128,7 +129,73 @@ def enviar_pedido_api():
             
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+    # ==========================================
+# API PARA EL PANEL DE COCINA (FETCH JS)
+# ==========================================
+@app.route('/api/pedidos', methods=['GET'])
+def obtener_pedidos_api():
+    try:
+        # Traemos los pedidos de Supabase
+        respuesta = supabase.table("pedidos").select("*").order("created_at", desc=True).execute()
+        pedidos_db = respuesta.data
+        
+        pedidos_adaptados = []
+        
+        # Mapeamos los nombres de Supabase a los que espera tu JavaScript actual
+        for p in pedidos_db:
+            pedido_formateado = {
+                "id": p.get("id"),
+                "nombre": p.get("cliente_nombre"),       # Mapeado a pedido.nombre
+                "telefono": p.get("cliente_telefono"),   # Mapeado a pedido.telefono
+                "direccion": p.get("cliente_direccion"), # Mapeado a pedido.direccion
+                "ubicacion_gps": p.get("ubicacion_gps"),
+                "notas": p.get("notas"),
+                "carrito": p.get("productos_detalle"),   # Mapeado a pedido.carrito
+                "total": p.get("total"),
+                "estado": p.get("estado") if p.get("estado") else "Pendiente",
+                "metodo_entrega": "domicilio" if p.get("cliente_direccion") else "retiro" 
+            }
+            pedidos_adaptados.append(pedido_formateado)
+            
+        return jsonify(pedidos_adaptados), 200
+        
+    except Exception as e:
+        print(f"Error en la API de pedidos: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+# ==========================================
+# 7. PANEL DE ADMINISTRACIÓN DE LA COCINA
+# ==========================================
 
+@app.route('/cocina')
+def panel_cocina():
+    try:
+        # Traemos todos los pedidos ordenados del más reciente al más viejo
+        respuesta = supabase.table("pedidos").select("*").order("created_at", desc=True).execute()
+        pedidos_lista = respuesta.data
+    except Exception as e:
+        print(f"Error al traer pedidos de Supabase: {e}")
+        pedidos_lista = []
+        
+    return render_template('cocina.html', pedidos=pedidos_lista)
+
+
+@app.route('/api/pedidos/<int:pedido_id>/estado', methods=['PUT'])
+def cambiar_estado_pedido(pedido_id):
+    try:
+        datos = request.get_json()
+        nuevo_estado = datos.get('estado')
+        
+        if not nuevo_estado:
+            return jsonify({"status": "error", "message": "Falta el estado"}), 400
+            
+        # Actualizamos la columna 'estado' en la fila del pedido correspondiente
+        supabase.table("pedidos").update({"estado": nuevo_estado}).eq("id", pedido_id).execute()
+        
+        return jsonify({"status": "success", "message": f"Pedido #{pedido_id} actualizado a {nuevo_estado}"}), 200
+        
+    except Exception as e:
+        print(f"Error al actualizar estado en Supabase: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 # 6. ARRANQUE DEL SERVIDOR
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

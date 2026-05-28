@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - Cocina Express Kitchen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased min-h-screen">
+
+    <header class="bg-slate-800 border-b border-slate-700 p-4 sticky top-0 z-50 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <span class="text-3xl animate-pulse">🔥</span>
+                <div>
+                    <h1 class="text-xl font-black uppercase tracking-wider text-white">Panel de Cocina</h1>
+                    <p class="text-xs text-emerald-400 font-bold flex items-center gap-1">
+                        <span class="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span> Monitor Activo
+                    </p>
+                </div>
+            </div>
+            <button onclick="window.location.reload()" class="bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs px-4 py-2 rounded-xl transition uppercase tracking-wide border border-slate-600">
+                🔄 Refrescar Pantalla
+            </button>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 max-w-7xl">
+        
+        {% if not pedidos %}
+        <div class="text-center py-20 bg-slate-800 rounded-3xl border border-dashed border-slate-700 max-w-xl mx-auto">
+            <span class="text-5xl">📭</span>
+            <h3 class="text-lg font-bold text-slate-300 mt-4 uppercase">No hay pedidos registrados</h3>
+            <p class="text-sm text-slate-500 mt-1">Los pedidos nuevos que hagan los clientes aparecerán aquí.</p>
+        </div>
+        {% else %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for pedido in pedidos %}
+            <div id="card-pedido-{{ pedido.id }}" class="bg-slate-800 border rounded-2xl p-5 flex flex-col justify-between transition duration-200 shadow-md
+                {% if pedido.estado == 'Entregado' %} border-slate-700 opacity-60 {% elif pedido.estado == 'En Preparación' %} border-amber-500 shadow-amber-500/10 {% else %} border-red-500 shadow-red-500/5 {% endif %}">
+                
+                <div>
+                    <div class="flex justify-between items-start border-b border-slate-700 pb-3 mb-4">
+                        <div>
+                            <span class="text-xs font-black text-slate-400 tracking-wider uppercase">Orden #{{ pedido.id }}</span>
+                            <h4 class="font-extrabold text-white text-base leading-tight mt-0.5">{{ pedido.cliente_nombre }}</h4>
+                        </div>
+                        <span id="badge-{{ pedido.id }}" class="text-[11px] font-black uppercase tracking-widest px-2.5 py-1 rounded-xl shadow-inner
+                            {% if pedido.estado == 'Entregado' %} bg-green-500/10 text-green-400 border border-green-500/20 
+                            {% elif pedido.estado == 'En Preparación' %} bg-amber-500/10 text-amber-400 border border-amber-500/20 
+                            {% else %} bg-red-500/10 text-red-400 border border-red-500/20 {% endif %}">
+                            {{ pedido.estado or 'Pendiente' }}
+                        </span>
+                    </div>
+
+                    <div class="space-y-1.5 text-xs text-slate-300 mb-4 bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
+                        <p>📞 <span class="font-bold">Teléfono:</span> {{ pedido.cliente_telefono }}</p>
+                        <p>📍 <span class="font-bold">Dirección:</span> {{ pedido.cliente_direccion or 'Retiro en Local' }}</p>
+                        {% if pedido.ubicacion_gps and pedido.ubicacion_gps != 'N/A' and pedido.ubicacion_gps != 'No compartida' %}
+                        <p>🗺️ <span class="font-bold">GPS:</span> 
+                            <a href="{{ pedido.ubicacion_gps }}" target="_blank" class="text-blue-400 hover:underline font-bold">Ver Mapa 🚀</a>
+                        </p>
+                        {% endif %}
+                        {% if pedido.notas and pedido.notas != 'Ninguna' %}
+                        <p class="text-amber-400 mt-1"><span class="font-bold text-slate-300">📝 Notas:</span> "{{ pedido.notas }}"</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="space-y-2 border-t border-b border-slate-700/50 py-3 mb-4">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Items solicitados</span>
+                        {% for item in pedido.productos_detalle %}
+                        <div class="flex justify-between text-sm text-slate-100">
+                            <span>🍔 {{ item.nombre }} <b class="text-red-400 ml-1">x{{ item.cantidad }}</b></span>
+                            <span class="font-medium text-slate-400">${{ (item.precio * item.cantidad)|int }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-xs text-slate-400 font-bold uppercase">Total Cobrar:</span>
+                        <span class="text-lg font-black text-green-400">${{ pedido.total|int }}</span>
+                    </div>
+
+                    <div class="w-full">
+                        <label class="block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">Actualizar estado:</label>
+                        <select onchange="actualizarEstadoServidor({{ pedido.id }}, this.value)" 
+                                class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-red-500 transition cursor-pointer">
+                            <option value="Pendiente" {% if pedido.estado == 'Pendiente' or not pedido.estado %}selected{% endif %}>🔴 Pendiente / Cola</option>
+                            <option value="En Preparación" {% if pedido.estado == 'En Preparación' %}selected{% endif %}>🟡 En Preparación</option>
+                            <option value="Entregado" {% if pedido.estado == 'Entregado' %}selected{% endif %}>🟢 Entregado / Despachado</option>
+                        </select>
+                    </div>
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+    </main>
+
+    <script>
+        function actualizarEstadoServidor(pedidoId, nuevoEstado) {
+            const card = document.getElementById(`card-pedido-${pedidoId}`);
+            const badge = document.getElementById(`badge-${pedidoId}`);
+
+            // Enviar la petición PUT al backend de Flask
+            fetch(`/api/pedidos/${pedidoId}/estado`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ estado: nuevoEstado })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Actualizar el texto del Badge de forma reactiva
+                    badge.innerText = nuevoEstado;
+
+                    // Remover clases de color anteriores
+                    badge.className = "text-[11px] font-black uppercase tracking-widest px-2.5 py-1 rounded-xl shadow-inner";
+                    card.className = "bg-slate-800 border rounded-2xl p-5 flex flex-col justify-between transition duration-200 shadow-md";
+
+                    // Aplicar nuevos estilos dinámicos visuales a la tarjeta y badge según el estado seleccionado
+                    if (nuevoEstado === 'Entregado') {
+                        badge.classList.add('bg-green-500/10', 'text-green-400', 'border', 'border-green-500/20');
+                        card.classList.add('border-slate-700', 'opacity-60');
+                    } else if (nuevoEstado === 'En Preparación') {
+                        badge.classList.add('bg-amber-500/10', 'text-amber-400', 'border', 'border-amber-500/20');
+                        card.classList.add('border-amber-500', 'shadow-amber-500/10');
+                    } else {
+                        badge.classList.add('bg-red-500/10', 'text-red-400', 'border', 'border-red-500/20');
+                        card.classList.add('border-red-500', 'shadow-red-500/5');
+                    }
+                } else {
+                    alert("No se pudo actualizar el estado: " + data.message);
+                }
+            })
+            .catch(error => {
+                console.error("Error en la petición:", error);
+                alert("Error crítico de conexión al intentar cambiar el estado.");
+            });
+        }
+    </script>
+</body>
+</html>
