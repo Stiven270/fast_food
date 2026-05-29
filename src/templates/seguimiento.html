@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seguimiento de tu Pedido #{{ pedido.id }}</title>
+    <meta http-equiv="refresh" content="20">
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #1e293b;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .header h1 { margin: 0; color: #ef4444; font-size: 24px; }
+        .header p { color: #94a3b8; margin: 5px 0 0 0; }
+        
+        /* BARRA DE ESTADOS VISUAL */
+        .status-container {
+            display: flex;
+            justify-content: space-between;
+            margin: 30px 0;
+            position: relative;
+        }
+        .status-container::before {
+            content: '';
+            position: absolute;
+            top: 15px; left: 5px; right: 5px;
+            height: 4px;
+            background-color: #334155;
+            z-index: 1;
+        }
+        .status-step {
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            flex: 1;
+        }
+        .circle {
+            width: 32px; height: 32px;
+            background-color: #334155;
+            border-radius: 50%;
+            margin: 0 auto 8px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #94a3b8;
+            transition: all 0.3s;
+        }
+        .status-label { font-size: 12px; color: #94a3b8; font-weight: 500; }
+        
+        /* ESTADOS ACTIVOS DINÁMICOS */
+        .active .circle { background-color: #22c55e; color: white; box-shadow: 0 0 10px #22c55e; }
+        .active .status-label { color: #22c55e; font-weight: bold; }
+        
+        .current .circle { background-color: #3b82f6; color: white; box-shadow: 0 0 10px #3b82f6; }
+        .current .status-label { color: #3b82f6; font-weight: bold; }
+
+        /* DETALLES */
+        .box {
+            background-color: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #334155;
+        }
+        .box h3 { margin-top: 0; color: #f1f5f9; border-bottom: 1px solid #334155; padding-bottom: 5px; }
+        .product-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            color: #22c55e;
+            font-size: 18px;
+            margin-top: 10px;
+            border-top: 1px dashed #334155;
+            padding-top: 10px;
+        }
+        .info-text { margin: 6px 0; font-size: 14px; color: #cbd5e1; }
+        .info-text strong { color: #94a3b8; }
+        
+        .footer-msg {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+            margin-top: 25px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>🍔 ¡Tu pedido está en camino!</h1>
+            <div style="text-align: center; margin-top: 10px;">
+    <a href="/" style="display: inline-block; background-color: #3b82f6; color: white; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: bold; transition: background 0.2s;">
+        🛒 ¿Quieres pedir algo más? Volver al Menú
+    </a>
+</div>
+            <p>Pedido ID: #{{ pedido.id }}</p>
+        </div>
+
+        <div class="status-container">
+            <div class="status-step {% if paso == 1 %}current{% elif paso > 1 %}active{% endif %}">
+                <div class="circle">1</div>
+                <div class="status-label">Recibido</div>
+            </div>
+            
+            <div class="status-step {% if paso == 2 %}current{% elif paso > 2 %}active{% endif %}">
+                <div class="circle">2</div>
+                <div class="status-label">Cocina</div>
+            </div>
+            
+            <div class="status-step {% if paso == 3 %}current{% elif paso > 3 %}active{% endif %}">
+                <div class="circle">3</div>
+                <div class="status-label">Reparto</div>
+            </div>
+            
+            <div class="status-step {% if paso == 4 %}current active{% endif %}">
+                <div class="circle">4</div>
+                <div class="status-label">Entregado</div>
+            </div>
+        </div>
+
+        <div class="box">
+            <h3>🛒 Resumen de Compra</h3>
+            {% for prod in pedido.productos_detalle %}
+                <div class="product-item">
+                    <span>{{ prod.nombre }} <strong>x{{ prod.cantidad }}</strong></span>
+                    <span>${{ "{:,.0f}".format(prod.precio * prod.cantidad) }}</span>
+                </div>
+            {% endfor %}
+            
+            <div class="total-row">
+                <span>Total Pagado:</span>
+                <span>${{ "{:,.0f}".format(pedido.total) }}</span>
+            </div>
+        </div>
+
+        <div class="box">
+            <h3>📍 Datos de Entrega</h3>
+            <p class="info-text"><strong>Nombre:</strong> {{ pedido.cliente_nombre }}</p>
+            <p class="info-text"><strong>Teléfono:</strong> {{ pedido.cliente_telefono }}</p>
+            {% if pedido.cliente_direccion %}
+                <p class="info-text"><strong>Dirección:</strong> {{ pedido.cliente_direccion }}</p>
+            {% else %}
+                <p class="info-text"><strong>Modalidad:</strong> Retiro en Local</p>
+            {% endif %}
+            <p class="info-text"><strong>Notas:</strong> {{ pedido.notas }}</p>
+        </div>
+
+        <p class="footer-msg">🔄 Esta página se actualiza automáticamente cada 20 segundos para mostrarte el estado de tu comida en tiempo real.</p>
+    </div>
+
+</body>
+</html>

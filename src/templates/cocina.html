@@ -85,14 +85,15 @@
                     </div>
 
                     <div class="w-full">
-                        <label class="block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">Actualizar estado:</label>
-                        <select onchange="actualizarEstadoServidor({{ pedido.id }}, this.value)" 
-                                class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-red-500 transition cursor-pointer">
-                            <option value="Pendiente" {% if pedido.estado == 'Pendiente' or not pedido.estado %}selected{% endif %}>🔴 Pendiente / Cola</option>
-                            <option value="En Preparación" {% if pedido.estado == 'En Preparación' %}selected{% endif %}>🟡 En Preparación</option>
-                            <option value="Entregado" {% if pedido.estado == 'Entregado' %}selected{% endif %}>🟢 Entregado / Despachado</option>
-                        </select>
-                    </div>
+    <label class="block text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-1">Actualizar estado:</label>
+    <select onchange="cambiarEstado('{{ pedido.id }}', this.value)" 
+            class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-red-500 transition cursor-pointer"> 
+        <option value="Pendiente" {% if pedido.estado == 'Pendiente' %}selected{% endif %}>🔴 Pendiente / Cola</option>
+        <option value="En Preparación" {% if pedido.estado == 'En Preparación' %}selected{% endif %}>🟡 En Preparación</option>
+        <option value="Despachado" {% if pedido.estado == 'Despachado' %}selected{% endif %}>🔵 Despachado / En camino</option>
+        <option value="Entregado" {% if pedido.estado == 'Entregado' %}selected{% endif %}>🟢 Entregado</option>
+    </select>
+</div>
                 </div>
 
             </div>
@@ -103,7 +104,7 @@
     </main>
 
     <script>
-        function actualizarEstadoServidor(pedidoId, nuevoEstado) {
+        function cambiarEstado(pedidoId, nuevoEstado) {
             const card = document.getElementById(`card-pedido-${pedidoId}`);
             const badge = document.getElementById(`badge-${pedidoId}`);
 

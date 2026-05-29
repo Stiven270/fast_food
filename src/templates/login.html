@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Panel de Cocina</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-card {
+            background-color: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 350px;
+            text-align: center;
+        }
+        h2 { margin-bottom: 20px; color: #f8fafc; }
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 14px; }
+        input {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background-color: #0f172a;
+            color: white;
+            font-size: 16px;
+        }
+        input:focus { outline: 1px solid #ef4444; }
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-login:hover { background-color: #dc2626; }
+        .error-msg { color: #f87171; font-size: 14px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <h2>🧑‍🍳 Acceso Cocina</h2>
+        
+        {% if error %}
+            <div class="error-msg">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="/login">
+            <div class="input-group">
+                <label for="username">Usuario</label>
+                <input type="text" id="username" name="username" required autocomplete="off">
+            </div>
+            <div class="input-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn-login">Ingresar al Monitor</button>
+        </form>
+    </div>
+
+</body>
+</html>

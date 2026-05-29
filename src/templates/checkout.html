@@ -19,7 +19,7 @@
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 mb-6">
             <h2 class="font-black text-gray-800 uppercase text-sm tracking-wider mb-3">Resumen de tu cuenta</h2>
             <div id="checkout-summary" class="space-y-2 text-sm text-gray-600">
-                </div>
+            </div>
             
             <div class="border-t pt-3 mt-3 space-y-2 text-sm text-gray-600">
                 <div class="flex justify-between">
@@ -82,26 +82,6 @@
                 🚀 Enviar Pedido a la Cocina
             </button>
         </form>
-
-        <div id="success-modal" class="fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 hidden">
-            <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl space-y-4">
-                <div class="text-4xl">🔥</div>
-                <h3 class="text-xl font-black text-gray-900 uppercase">¡Pedido en la Cocina!</h3>
-                <p class="text-sm text-gray-600">Tu orden ha sido enviada con éxito. Ya la estamos preparando.</p>
-                
-                <div class="bg-yellow-50 p-3 rounded-xl border border-yellow-200 text-xs text-yellow-800 text-left">
-                    <b>¿Quieres cancelar o modificar algo?</b> Escríbenos de inmediato por WhatsApp antes de que salga tu pedido.
-                </div>
-
-                <a id="whatsapp-btn" href="#" target="_blank" class="block w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl transition shadow text-sm uppercase tracking-wider">
-                    💬 Escribir a Soporte
-                </a>
-
-                <button onclick="volverAlMenu()" class="w-full text-xs font-bold text-gray-400 hover:text-gray-600 uppercase tracking-wide pt-2">
-                    Volver al Menú Principal
-                </button>
-            </div>
-        </div>
     </main>
 
     <script src="{{ url_for('static', filename='js/cart.js') }}"></script>
@@ -172,25 +152,26 @@
         }
 
         function calcularTotalesFinales() {
-    let costoEnvio = 0;
-    
-    if (metodoEntrega === 'domicilio') {
-        const horaActual = new Date().getHours(); // Captura la hora local del celular/PC del cliente
-        // Si la hora del dispositivo está entre las 8 PM (20) y las 10 PM (23)
-        if (horaActual >= 20 && horaActual < 23) {
-            costoEnvio = 6000;
-            document.getElementById('checkout-envio').innerText = `+$${costoEnvio.toLocaleString('es-CO')} (Nocturno)`;
-        } else {
-            costoEnvio = TARIFA_DOMICILIO; // Los $5000 normales
-            document.getElementById('checkout-envio').innerText = `+$${costoEnvio.toLocaleString('es-CO')}`;
+            let costoEnvio = 0;
+            
+            if (metodoEntrega === 'domicilio') {
+                const horaActual = new Date().getHours(); // Captura la hora local del dispositivo del cliente
+                // Si la hora del dispositivo está entre las 8 PM (20) y las 11 PM (23)
+                if (horaActual >= 20 && horaActual < 23) {
+                    costoEnvio = 6000;
+                    document.getElementById('checkout-envio').innerText = `+$${costoEnvio.toLocaleString('es-CO')} (Nocturno)`;
+                } else {
+                    costoEnvio = TARIFA_DOMICILIO; // Los $5000 normales
+                    document.getElementById('checkout-envio').innerText = `+$${costoEnvio.toLocaleString('es-CO')}`;
+                }
+            }
+
+            let totalNeto = subtotalProductos + costoEnvio;
+
+            document.getElementById('checkout-subtotal').innerText = `$${subtotalProductos.toLocaleString('es-CO')}`;
+            document.getElementById('checkout-total').innerText = `$${totalNeto.toLocaleString('es-CO')}`;
         }
-    }
 
-    let totalNeto = subtotalProductos + costoEnvio;
-
-    document.getElementById('checkout-subtotal').innerText = `$${subtotalProductos.toLocaleString('es-CO')}`;
-    document.getElementById('checkout-total').innerText = `$${totalNeto.toLocaleString('es-CO')}`;
-}
         // Función para capturar coordenadas GPS
         function obtenerUbicacion() {
             const btnGps = document.getElementById('btn-gps');
@@ -209,7 +190,7 @@
                     const lon = position.coords.longitude;
                     
                     // Almacenamiento limpio del enlace de Google Maps
-                    document.getElementById('coordenadas').value = `https://www.google.com/maps?q=${lat},${lon}`;
+                    document.getElementById('coordenadas').value = `https://maps.google.com/?q=${lat},${lon}`;
                     
                     btnGps.innerText = "✅ Ubicación vinculada con éxito";
                     btnGps.className = "mt-2 text-xs font-bold text-green-600 flex items-center gap-1 bg-green-50 px-3 py-2 rounded-lg border border-green-200";
@@ -226,69 +207,62 @@
 
         // Función unificada de Envío hacia el backend Flask
         function enviarPedido(event) {
-    event.preventDefault();
-    
-    // 1. Calculamos el total neto real que el usuario ve en pantalla para seguridad
-    let costoEnvio = (metodoEntrega === 'domicilio') ? TARIFA_DOMICILIO : 0;
-    let totalNetoDefinitivo = subtotalProductos + costoEnvio;
-    
-    // 2. Creamos el objeto con las llaves exactas que espera tu archivo app.py
-// ... dentro de function enviarPedido(event)
-const datos = {
-    nombre: document.getElementById('nombre').value,
-    telefono: document.getElementById('telefono').value,
-    metodo_entrega: metodoEntrega,
-    direccion: metodoEntrega === 'domicilio' ? document.getElementById('direccion').value : "Retiro en local",
-    ubicacion_gps: metodoEntrega === 'domicilio' ? (document.getElementById('coordenadas').value || "No compartida") : "N/A",
-    notas: document.getElementById('notas').value,
-    total: totalNetoDefinitivo, // 👈 Cambiado para que mande el valor con domicilio
-    carrito: carrito 
-};
-    
-    // Deshabilitar botón para evitar múltiples clics
-    const btnEnviar = event.target.querySelector('button[type="submit"]');
-    btnEnviar.innerText = "⏳ Enviando pedido a la cocina...";
-    btnEnviar.disabled = true;
-
-    // 3. Enviamos los datos al backend
-    fetch('/api/enviar-pedido', {  // Revisa si tu ruta es '/api/enviar-pedido' o '/enviar-pedido'
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(datos)
-    })
-    .then(response => response.json())
-    .then(data => {
-        // Validamos tanto 'status' como 'success' según cómo responda tu backend
-        if (data.status === 'success' || data.success === true) {
-            // Limpiamos el carrito local para que no se duplique
-            localStorage.removeItem('carrito');
-            if (typeof carrito !== 'undefined') carrito = []; 
+            event.preventDefault();
             
-            // Configurar botón de WhatsApp de soporte
-            const numeroCocina = "573202635362"; 
-            const mensajeWa = encodeURIComponent(`Hola Express Kitchen, acabo de enviar una orden a nombre de ${datos.nombre}. ¡Quedo atento!`);
-            document.getElementById('whatsapp-btn').href = `https://wa.me/${numeroCocina}?text=${mensajeWa}`;
+            // 1. Calculamos el total neto dinámico según la hora local del cliente
+            let costoEnvio = 0;
+            if (metodoEntrega === 'domicilio') {
+                const horaActual = new Date().getHours();
+                costoEnvio = (horaActual >= 20 && horaActual < 23) ? 6000 : TARIFA_DOMICILIO;
+            }
+            let totalNetoDefinitivo = subtotalProductos + costoEnvio;
             
-            // Mostrar ventana de éxito
-            document.getElementById('success-modal').classList.remove('hidden');
-        } else {
-            alert("Hubo un problema al procesar el pedido: " + (data.message || "Error desconocido"));
-            btnEnviar.innerText = "🚀 Enviar Pedido a la Cocina";
-            btnEnviar.disabled = false;
-        }
-    })
-    .catch(error => {
-        console.error("Error en Fetch:", error);
-        alert("Error de conexión con el servidor.");
-        btnEnviar.innerText = "🚀 Enviar Pedido a la Cocina";
-        btnEnviar.disabled = false;
-    });
-}
+            // 2. Creamos el objeto con las llaves exactas que espera tu archivo app.py
+            const datos = {
+                nombre: document.getElementById('nombre').value,
+                telefono: document.getElementById('telefono').value,
+                metodo_entrega: metodoEntrega,
+                direccion: metodoEntrega === 'domicilio' ? document.getElementById('direccion').value : "Retiro en local",
+                ubicacion_gps: metodoEntrega === 'domicilio' ? (document.getElementById('coordenadas').value || "No compartida") : "N/A",
+                notas: document.getElementById('notas').value,
+                total: totalNetoDefinitivo,
+                carrito: carrito 
+            };
+            
+            // Deshabilitar botón para evitar múltiples clics
+            const btnEnviar = event.target.querySelector('button[type="submit"]');
+            btnEnviar.innerText = "⏳ Enviando pedido a la cocina...";
+            btnEnviar.disabled = true;
 
-        function volverAlMenu() {
-            window.location.href = '/';
+            // 3. Enviamos los datos al backend
+            fetch('/api/enviar-pedido', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(datos)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' || data.success === true) {
+                    // ¡Éxito! Limpiamos el almacenamiento local del carrito
+                    localStorage.removeItem('carrito');
+                    if (typeof carrito !== 'undefined') carrito = []; 
+                    
+                    // REDIRECCIÓN AUTOMÁTICA EN TIEMPO REAL A LA INTERFAZ DE GUÍA
+                    window.location.href = `/seguimiento/${data.pedido_id}`;
+                } else {
+                    alert("Hubo un problema al procesar el pedido: " + (data.message || "Error desconocido"));
+                    btnEnviar.innerText = "🚀 Enviar Pedido a la Cocina";
+                    btnEnviar.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error("Error en Fetch:", error);
+                alert("Error de conexión con el servidor.");
+                btnEnviar.innerText = "🚀 Enviar Pedido a la Cocina";
+                btnEnviar.disabled = false;
+            });
         }
     </script>
 </body>
